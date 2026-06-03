@@ -1,68 +1,51 @@
-_schema-version: "3.3"
-ID: empsalesdetails
-version: 1.0.0
+name: Deploy CAP to SAP BTP
 
-parameters:
-  enable-parallel-deployments: true
+on:
+  push:
+    branches:
+      - main
 
-build-parameters:
-  before-all:
-    - builder: custom
-      commands:
-        - npm install
-        - npx cds build --production
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-modules:
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
 
-  - name: empsalesdetails-srv
-    type: nodejs
-    path: gen/srv
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-    parameters:
-      memory: 512M
-      disk-quota: 512M
+      - name: Install Dependencies
+        run: npm install
 
-    provides:
-      - name: srv-api
-        properties:
-          srv-url: ${default-url}
+      - name: Build CAP Project
+        run: npx cds build --production
 
-    requires:
-      - name: empsalesdetails-db
-      - name: empsalesdetails-xsuaa
-      - name: empsalesdetails-destination
+      - name: Install MBT
+        run: npm install -g mbt
 
-    build-parameters:
-      builder: npm-ci
+      - name: Build MTA Archive
+        run: mbt build
 
-  - name: empsalesdetails-db-deployer
-    type: hdb
+      - name: Install Cloud Foundry CLI
+        run: |
+          wget -O cf8.tgz "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=8"
+          tar -xzf cf8.tgz
+          sudo mv cf8 /usr/local/bin/cf
 
-    path: gen/db
+      - name: Login to Cloud Foundry
+        run: |
+          cf api ${{ secrets.CF_API }}
+          cf auth ${{ secrets.CF_USERNAME }} ${{ secrets.CF_PASSWORD }}
+          cf target -o ${{ secrets.CF_ORG }} -s ${{ secrets.CF_SPACE }}
 
-    requires:
-      - name: employee-db
+      - name: Install MultiApps Plugin
+        run: |
+          cf install-plugin -f https://github.com/cloudfoundry/multiapps-cli-plugin/releases/latest/download/multiapps-plugin.linux64
 
-resources:
-
-  - name: employee-db
-    type: com.sap.xs.hdi-container
-
-    parameters:
-      service: hana
-      service-plan: hdi-shared
-
-  - name: empsalesdetails-xsuaa
-    type: org.cloudfoundry.managed-service
-
-    parameters:
-      service: xsuaa
-      service-plan: application
-      path: xs-security.json
-
-  - name: empsalesdetails-destination
-    type: org.cloudfoundry.managed-service
-
-    parameters:
-      service: destination
-      service-plan: lite
+      - name: Deploy MTAR
+        run: |
+          cf deploy mta_archives/*.mtar -f
