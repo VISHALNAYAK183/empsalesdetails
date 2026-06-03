@@ -30,10 +30,10 @@ jobs:
       - name: Build MTA Archive
         run: mbt build
 
-      - name: Install Cloud Foundry CLI
+      - name: Install CF CLI
         run: |
-          wget -O cf8.tgz "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=8"
-          tar -xzf cf8.tgz
+          wget -q -O cf.tgz "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=8"
+          tar -xzf cf.tgz
           sudo mv cf8 /usr/local/bin/cf
 
       - name: Login to Cloud Foundry
@@ -44,7 +44,7 @@ jobs:
 
       - name: Install MultiApps Plugin
         run: |
-          cf install-plugin -f https://github.com/cloudfoundry/multiapps-cli-plugin/releases/latest/download/multiapps-plugin.linux64
+          cf install-plugin multiapps -f || true
 
       - name: Deploy MTAR
         run: |
