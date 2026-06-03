@@ -31,11 +31,7 @@ jobs:
         run: mbt build
 
       - name: Install CF CLI
-        run: |
-          curl -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=8" -o cf8.tgz
-          tar -xzf cf8.tgz
-          sudo mv cf8 /usr/local/bin/cf
-          cf version
+        uses: cloudfoundry/setup-cf-cli@v1
 
       - name: Login to Cloud Foundry
         run: |
