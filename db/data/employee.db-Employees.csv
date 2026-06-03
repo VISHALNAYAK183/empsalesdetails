@@ -1,4 +1,4 @@
-ID,EmployeeName,Salary
-101,Vishal,90000
-102,Rakesh,45000
-103,Abhishek,79000
+ID,EmployeeName,Salary,Status
+101,Vishal,90000,Active
+102,Rakesh,45000,InActive
+103,Abhishek,79000,Active
